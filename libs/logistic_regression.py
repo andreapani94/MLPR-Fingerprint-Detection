@@ -10,6 +10,7 @@ def effective_prior_logodds(X: np.ndarray, y: np.ndarray) -> np.ndarray:
     prior_emp = (X[:, y==1].shape[1]) / X.shape[1]
     return np.log(prior_emp / (1 - prior_emp))
 
+
 def quadratic_expansion(data):
     data_exp = []
 

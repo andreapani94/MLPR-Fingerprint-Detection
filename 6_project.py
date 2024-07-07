@@ -53,7 +53,7 @@ def main():
         model.train(train_data, train_labels)
         # classification
         scores = model(val_data)
-        llr_scores = scores - pi_true
+        llr_scores = scores - np.log(pi_true / (1 - pi_true))
         predictions = bayes_pred_llr(llr_scores, pi_true)
         M = confusion_matrix(predictions, val_labels)
         actDCF_score = DCF(M, pi_true)

@@ -170,6 +170,7 @@ def print_matrix(matrix):
 def print_results(data: list[tuple], headers: list[str]):
     print(tabulate(data, headers=headers, floatfmt='.3f', tablefmt='grid'))
     print()
+
     
 
 
