@@ -14,6 +14,7 @@ applications = [
 ]
 
 basepath = 'results/gaussian_models'
+results_filepath = 'results/gaussian_models.txt'
 effective_prior = lambda p, Cfn, Cfp: (p * Cfn) / ((p * Cfn) + ((1 - p) * Cfp))
 
 def main():
@@ -39,14 +40,15 @@ def main():
                 f'{' '.join(filename.removesuffix('_llr.npy').capitalize().split('_'))}', 
                 dcf_score, 
                 dcfmin_score,
-                dcf_score - dcfmin_score
+                dcf_score - dcfmin_score,
+                f'{((dcf_score - dcfmin_score) / dcfmin_score) * 100:.2f}%'
             ))
-    print_table(table_rows, ['𝜋̃', 'Model', 'DCF', 'min DCF', 'ΔDCF'], filepath=filepath)
-    # from the table the best PCA configuration is m=3
+    print_table(table_rows, ['𝜋̃', 'Model', 'DCF', 'min DCF', 'ΔDCF', 'Calibration loss'], filepath=results_filepath)
+    # from the table the best PCA configuration is no PCA
     # load the llr scores for the models of this configuration
     model_llr_scores = []
     for filename in os.listdir(basepath):
-        if 'm=3' in filename:
+        if 'm=' not in filename:
             filepath = os.path.join(basepath, filename)
             llr_scores = np.load(filepath)
             model_name = f'{' '.join(filename.removesuffix('_llr.npy').capitalize().split('_'))}'
@@ -67,7 +69,7 @@ def main():
     plot_bayer_error(
         prior_logodds=prior_logodds,
         model_dcf_map=model_dcf_map,
-        title='Gaussian models DCF comparison',
+        title='plots/gaussian_models_DCF_comparison',
         separate_plots=True
     ) 
 

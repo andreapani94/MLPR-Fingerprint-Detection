@@ -6,7 +6,7 @@ from tabulate import tabulate
 from libs.model_evaluation import DCF, DCF_min, confusion_matrix, bayes_pred_llr
 from libs.utils import row, col
 
-def effective_prior_logodds(X: np.ndarray, y: np.ndarray) -> np.ndarray:
+def empirical_prior_logodds(X: np.ndarray, y: np.ndarray) -> np.ndarray:
     prior_emp = (X[:, y==1].shape[1]) / X.shape[1]
     return np.log(prior_emp / (1 - prior_emp))
 

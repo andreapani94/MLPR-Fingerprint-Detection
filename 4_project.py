@@ -32,10 +32,9 @@ def main():
     # correlation analysis
     for label in [0, 1]:
         C = mvg.params[label][1]
-        print(f'{label_names[label]}:')
-        print_matrix(C, 'Covariance', filepath=filepath)
+        print_matrix(C, f'{label_names[label]} covariance', filepath=filepath)
         C_corr = corr(C)
-        print_matrix(C_corr, 'Correlation', filepath=filepath)
+        print_matrix(C_corr, f'{label_names[label]} correlation', filepath=filepath)
         sn.heatmap(C_corr, linewidths=2, cmap='Reds')
         plt.savefig(f'plots/heatmap_corr_{to_snake_case(label_names[label])}.png')
         plt.close()

@@ -91,7 +91,7 @@ def print_matrix(matrix, title: str=None, filepath: str=None):
 def print_table(data: list[tuple], headers: list[str], title:str=None, filepath: str=None):
     try:
         if filepath:
-            with open(filepath, 'a') as f:
+            with open(filepath, 'a', encoding='utf-8') as f:
                 if title: print(title, file=f)
                 print(tabulate(data, headers=headers, floatfmt='.3f', tablefmt='grid'), file=f)
                 print(file=f)    

@@ -173,7 +173,6 @@ def print_results(data: list[tuple], headers: list[str]):
 
     
 
-
 def main():
     # CONFUSION MATRICES
     #   Confusion matrices for the Iris Dataset classification problem

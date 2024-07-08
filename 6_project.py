@@ -1,5 +1,5 @@
 from libs.utils import load_data, split_2to1, to_snake_case, zero_center, z_normalize
-from libs.logistic_regression import LogisticRegression, effective_prior_logodds, quadratic_expansion
+from libs.logistic_regression import LogisticRegression, empirical_prior_logodds, quadratic_expansion
 from libs.model_evaluation import DCF, DCF_min, bayes_pred_llr, confusion_matrix
 import numpy as np
 import matplotlib.pyplot as plt
@@ -36,7 +36,7 @@ def main():
             model.train(train_data, train_labels)
             # classification
             scores = model(val_data)
-            llr_scores = scores - effective_prior_logodds(train_data, train_labels)
+            llr_scores = scores - empirical_prior_logodds(train_data, train_labels)
             predictions = bayes_pred_llr(llr_scores, pi_true)
             M = confusion_matrix(predictions, val_labels)
             actDCF_score = DCF(M, pi_true)
@@ -70,7 +70,7 @@ def main():
         model.train(train_data_quad, train_labels)
         # classification
         scores = model(val_data_quad)
-        llr_scores = scores - effective_prior_logodds(train_data_quad, train_labels)
+        llr_scores = scores - empirical_prior_logodds(train_data_quad, train_labels)
         predictions = bayes_pred_llr(llr_scores, pi_true)
         M = confusion_matrix(predictions, val_labels)
         actDCF_score = DCF(M, pi_true)
@@ -93,7 +93,7 @@ def main():
             model.train(train_data, train_labels)
             # classification
             scores = model(val_data)
-            llr_scores = scores - effective_prior_logodds(train_data, train_labels)
+            llr_scores = scores - empirical_prior_logodds(train_data, train_labels)
             predictions = bayes_pred_llr(llr_scores, pi_true)
             M = confusion_matrix(predictions, val_labels)
             actDCF_score = DCF(M, pi_true)
