@@ -6,16 +6,17 @@ import matplotlib.pyplot as plt
 
 pi_true = 0.1
 
-def plot_logreg_dcfs(reg_values: list[float], dcfs: list[list, list], title: str):
+def plot_logreg_dcfs(reg_values: list[float], dcfs: list[list, list], title: str, savepath: str):
     plt.figure()
     plt.xscale('log', base=10)
-    plt.plot(reg_values, dcfs[0], label='actDCF')
-    plt.plot(reg_values, dcfs[1], linestyle='--', label='minDCF')
-    plt.xlabel('λ (regularization parameter)')
+    plt.plot(reg_values, dcfs[0], label='actDCF', marker='o')
+    plt.plot(reg_values, dcfs[1], linestyle='--', label='minDCF', marker='o')
+    plt.xlabel('λ (regularization strength)')
     plt.ylabel('DCFs')
     plt.ylim(bottom=0)
     plt.legend()
-    plt.savefig(f'./plots/{title}')
+    plt.title(title)
+    plt.savefig(savepath)
     plt.close()
 
 
@@ -43,7 +44,7 @@ def main():
             dcfs[0].append(actDCF_score)
             minDCF_score = DCF_min(llr_scores, val_labels, pi_true)
             dcfs[1].append(minDCF_score)
-        plot_logreg_dcfs(reg_values, dcfs, f'logreg_λ_DCFs_{to_snake_case(title)}')
+        plot_logreg_dcfs(reg_values, dcfs, 'Logistic Regression', f'plots/logreg_λ_DCFs_{to_snake_case(title)}')
     # analyse the DCF of the Prior-Weighted Logistic Regression as regularization changes
     (train_data, train_labels), (val_data, val_labels) = split_2to1(data, labels)
     dcfs = [[], []]
@@ -60,7 +61,7 @@ def main():
         dcfs[0].append(actDCF_score)
         minDCF_score = DCF_min(llr_scores, val_labels, pi_true)
         dcfs[1].append(minDCF_score)
-    plot_logreg_dcfs(reg_values, dcfs, f'prior_weighted_logreg_λ_DCFs_{to_snake_case('Full dataset')}')
+    plot_logreg_dcfs(reg_values, dcfs, f'Logistic Regression (π={pi_true})', f'plots/prior_weighted_logreg_λ_DCFs_{to_snake_case('Full dataset')}')
     # analyse the DCF of the Quadratic Logistic Regression as regularization changes
     train_data_quad, val_data_quad = quadratic_expansion(train_data), quadratic_expansion(val_data)
     dcfs = [[], []]
@@ -77,7 +78,7 @@ def main():
         dcfs[0].append(actDCF_score)
         minDCF_score = DCF_min(llr_scores, val_labels, pi_true)
         dcfs[1].append(minDCF_score)
-    plot_logreg_dcfs(reg_values, dcfs, f'quad_logreg_λ_DCFs_{to_snake_case('Full dataset')}')
+    plot_logreg_dcfs(reg_values, dcfs, 'Logistic Regression', f'plots/quad_logreg_λ_DCFs_{to_snake_case('Full dataset')}')
     # analyse the DCF of the Logistic Regression as regularization changes
     # with pre-processing techniques applied
     for title, preprocess in [
@@ -100,7 +101,7 @@ def main():
             dcfs[0].append(actDCF_score)
             minDCF_score = DCF_min(llr_scores, val_labels, pi_true)
             dcfs[1].append(minDCF_score)
-        plot_logreg_dcfs(reg_values, dcfs, f'logreg_λ_DCFs_{to_snake_case(title)}')
+        plot_logreg_dcfs(reg_values, dcfs, 'Logistic Regression', f'plots/logreg_λ_DCFs_{to_snake_case(title)}')
 
 
 if __name__ == '__main__':

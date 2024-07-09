@@ -71,7 +71,7 @@ def main():
         prior_logodds=effprior_logodds,
         model_dcf_map=model_dcf_map,
         savepath='plots/gaussian_models_DCF_comparison',
-        title='MVG variants error',
+        title='MVG Variants',
         separate_plots=False
     ) 
 
