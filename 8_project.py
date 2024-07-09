@@ -43,7 +43,7 @@ def main():
             dcfs[0].append(actDCF)
             minDCF = DCF_min(llr_scores, val_labels, pi_true)
             dcfs[1].append(minDCF)
-            np.save(f'results/gaussian_models/GMM(G={G})_{covtype}_llrs', llr_scores)  
+            np.save(f'results/gaussian_mixture_models/GMM(G={G})_{covtype}_llrs', llr_scores)  
         plot_gmm_dcfs(G_values, dcfs, f'GMM {title}', f'plots/GMM_{covtype}_G_DCFs_plot')
         # np.save(
         #     f'models/gaussian_models/GMM(G={G})_{covtype}_params',

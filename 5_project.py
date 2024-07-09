@@ -54,11 +54,12 @@ def main():
             model_name = f'{' '.join(filename.removesuffix('_llr.npy').capitalize().split('_'))}'
             model_llr_scores.append((model_name, llr_scores))
     # compare the models for various effective priors using a bayes error plot
-    prior_logodds = np.linspace(-4, 4, 21)
+    effprior_logodds = np.linspace(-4, 4, 21)
+    effpriors = 1 / (1 + np.exp(-effprior_logodds))
     model_dcf_map = {}
     for model_name, llr_scores in model_llr_scores:
         actDCFs, minDCFs = list(), list()
-        for prior_eff in effective_priors(prior_logodds):
+        for prior_eff in effpriors:
             predictions = bayes_pred_llr(llr_scores, prior_eff)
             M = confusion_matrix(predictions, val_labels)
             dcf_score = DCF(M, prior_eff)
@@ -67,10 +68,11 @@ def main():
             minDCFs.append(mindcf_score)
         model_dcf_map[model_name] = {'actDCF': actDCFs, 'minDCF': minDCFs}
     plot_bayer_error(
-        prior_logodds=prior_logodds,
+        prior_logodds=effprior_logodds,
         model_dcf_map=model_dcf_map,
-        title='plots/gaussian_models_DCF_comparison',
-        separate_plots=True
+        savepath='plots/gaussian_models_DCF_comparison',
+        title='MVG variants error',
+        separate_plots=False
     ) 
 
 if __name__ == '__main__':

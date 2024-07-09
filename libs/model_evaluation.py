@@ -91,7 +91,7 @@ def plot_ROC_curve(scores, ltrue):
     plt.savefig('ROC_curve.png')
 
 def plot_bayer_error(prior_logodds, model_dcf_map: dict[str, dict[str, list[float]]], 
-                        title: str=None, separate_plots: bool=False):
+                        title: str=None, savepath: str=None, separate_plots: bool=False):
     plt.figure()
     colors = cycle(plt.rcParams['axes.prop_cycle'].by_key()['color'])
 
@@ -135,10 +135,10 @@ def plot_bayer_error(prior_logodds, model_dcf_map: dict[str, dict[str, list[floa
         plt.suptitle(title) if title else plt.suptitle('Bayes Error')
 
     plt.tight_layout()
-    if not title:
+    if not savepath:
         plt.savefig('bayes_error.png')
     else:
-        plt.savefig(f'{title}.png')
+        plt.savefig(savepath)
 
 def bayes_pred_post(P: np.ndarray, C: np.ndarray):
     Bscores = C @ P
