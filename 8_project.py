@@ -1,117 +1,55 @@
+from libs.utils import load_data, split_2to1, to_snake_case
+from libs.gaussian_mixture_models import GMM
+from libs.model_evaluation import bayes_pred_llr, confusion_matrix, DCF, DCF_min
 import numpy as np
 import matplotlib.pyplot as plt
-from libs.utils import load_data, split_2to1, col, row
-from logistic_regression import LogisticRegression, print_logreg_res
-from model_evaluation import DCF, DCF_min, confusion_matrix, bayes_pred_llr
 
-pi = 0.1
-
-def plot_logreg_dcfs(l_values: list[float], dcfs: list[list, list], title: str):
+def plot_gmm_dcfs(G_values: list[int], dcfs: list[list, list], title: str, savepath: str):
     plt.figure()
-    plt.xscale('log', base=10)
-    plt.plot(l_values, dcfs[0], label='actDCF')
-    plt.plot(l_values, dcfs[1], linestyle='--', label='minDCF')
-    plt.xlabel('λ (regularization parameter)')
+    plt.plot(G_values, dcfs[0], label='actDCF', marker='o')
+    plt.plot(G_values, dcfs[1], label='minDCF', marker='o', linestyle='--')
+    plt.xlabel('G (Gaussian components)')
     plt.ylabel('DCFs')
     plt.ylim(bottom=0)
+    plt.xticks(ticks=G_values)
     plt.legend()
-    plt.savefig(f'./plots/{title}')
+    plt.title(title)
+    plt.savefig(savepath)
     plt.close()
 
-def quadratic_expansion(data):
-    data_exp = []
-
-    for i in range(data.shape[1]):
-        x = data[:, i:i+1]
-        x_exp = np.vstack([col((x @ x.T).ravel()), x])
-        data_exp.append(x_exp)
-
-    return np.hstack(data_exp)
-    
-
+pi_true = 0.1
+ 
 def main():
-    D, l = load_data('dataset/train.txt')
-    (Dtr, ltr), (Dval, lval) = split_2to1(D, l)
-    # DCFs as λ changes analysis 
-    # once with a full dataset once with only 1/50 of the samples
-    lam_values = np.logspace(-4, 2, 13)
-    for Dtr, ltr, title in [(Dtr, ltr, 'full'), (Dtr[:, ::50], ltr[::50], '1outof50')]:
+    data, labels = load_data('dataset/train.txt')
+    (train_data, train_labels), (val_data, val_labels) = split_2to1(data, labels)
+    G_values = 2**np.arange(0, 6)
+    for title, covtype in [
+        ('Full Covariance', 'full'), 
+        ('Diagonal Covariance', 'diag'), 
+        ('Tied Covariance', 'tied')
+    ]:
         dcfs = [[], []]
-        for lam in lam_values:
-            model = LogisticRegression(lam)
-            # training
-            model.train(Dtr, ltr)
-            # evaluation
-            S = model(Dval)
-            lpred = np.where(S > 0, 1, 0).ravel()
-            pi_emp = Dtr[:, ltr==1].shape[1] / Dtr.shape[1]
-            Sllr = S - np.log(pi_emp / (1 - pi_emp))
-            lpred = bayes_pred_llr(Sllr, pi)
-            M = confusion_matrix(lpred, lval)
-            actDCF = DCF(M, pi)
-            minDCF = DCF_min(Sllr, lval, pi)
+        for G in G_values:
+            model = GMM(n_components=G, covtype=covtype)
+            scores = []
+            for label in [0, 1]:
+                model.train(train_data[:, train_labels==label], conv_threshold=1e-6, covbound=0.01)
+                scores.append(model(val_data))
+            scores = np.vstack(scores)
+            llr_scores = scores[1] - scores[0]
+            predictions = bayes_pred_llr(llr_scores, pi_true)
+            confmatrix = confusion_matrix(predictions, val_labels)
+            actDCF = DCF(confmatrix, pi_true)
             dcfs[0].append(actDCF)
+            minDCF = DCF_min(llr_scores, val_labels, pi_true)
             dcfs[1].append(minDCF)
-        plot_logreg_dcfs(lam_values, dcfs, f'logreg_λ_DCFs_{title}')
-    # analyse the Prior-Weighted Logistic Regression
-    (Dtr, ltr), (Dval, lval) = split_2to1(D, l)
-    dcfs = [[], []]
-    for lam in lam_values:
-        model = LogisticRegression(lam, pi=pi)
-        # training
-        model.train(Dtr, ltr)
-        # evaluation
-        S = model(Dval)
-        lpred = np.where(S > 0, 1, 0).ravel()
-        Sllr = S - np.log(pi / (1 - pi))
-        lpred = bayes_pred_llr(Sllr, pi)
-        M = confusion_matrix(lpred, lval)
-        actDCF = DCF(M, pi)
-        minDCF = DCF_min(Sllr, lval, pi)
-        dcfs[0].append(actDCF)
-        dcfs[1].append(minDCF)
-    plot_logreg_dcfs(lam_values, dcfs, f'prior_weighted_logreg_λ_DCFs_full')
-    # analyze the quadratic Logistic Regression
-    #   transform the features
-    Dtr_exp, Dval_exp = quadratic_expansion(Dtr), quadratic_expansion(Dval)
-    dcfs = [[], []]
-    for lam in lam_values:
-        model = LogisticRegression(lam)
-        # training
-        model.train(Dtr_exp, ltr)
-        # evaluation
-        S = model(Dval_exp)
-        lpred = np.where(S > 0, 1, 0).ravel()
-        pi_emp = Dtr_exp[:, ltr==1].shape[1] / Dtr_exp.shape[1]
-        Sllr = S - np.log(pi_emp / (1 - pi_emp))
-        lpred = bayes_pred_llr(Sllr, pi)
-        M = confusion_matrix(lpred, lval)
-        actDCF = DCF(M, pi)
-        minDCF = DCF_min(Sllr, lval, pi)
-        dcfs[0].append(actDCF)
-        dcfs[1].append(minDCF)
-    plot_logreg_dcfs(lam_values, dcfs, f'quad_logreg_λ_DCFs_full')
-    # analyze the effect of centering on the Logistic Regression
-    # can extend to other pre-processing strategies
-    mu = col(np.mean(Dtr, 1))
-    Dtr_c, Dval_c = Dtr - mu, Dval - mu
-    dcfs = [[], []]
-    for lam in lam_values:
-        model = LogisticRegression(lam)
-        # training
-        model.train(Dtr_c, ltr)
-        # evaluation
-        S = model(Dval_c)
-        lpred = np.where(S > 0, 1, 0).ravel()
-        pi_emp = Dtr[:, ltr==1].shape[1] / Dtr.shape[1]
-        Sllr = S - np.log(pi_emp / (1 - pi_emp))
-        lpred = bayes_pred_llr(Sllr, pi)
-        M = confusion_matrix(lpred, lval)
-        actDCF = DCF(M, pi)
-        minDCF = DCF_min(Sllr, lval, pi)
-        dcfs[0].append(actDCF)
-        dcfs[1].append(minDCF)
-    plot_logreg_dcfs(lam_values, dcfs, f'logreg_λ_DCFs_full_centered')
+            np.save(f'results/gaussian_models/GMM(G={G})_{covtype}_llrs', llr_scores)  
+        plot_gmm_dcfs(G_values, dcfs, f'GMM {title}', f'plots/GMM_{covtype}_G_DCFs_plot')
+        # np.save(
+        #     f'models/gaussian_models/GMM(G={G})_{covtype}_params',
+
+        # )
+    
 
 if __name__ == '__main__':
     main()
