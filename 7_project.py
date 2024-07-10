@@ -42,7 +42,7 @@ pi_true = 0.1
 def main():
     data, labels = load_data('dataset/train.txt')
     (train_data, train_labels), (val_data, val_labels) = split_2to1(data, labels)
-    #train_data, train_labels = train_data[:, ::50], train_labels[::50] # just for experiments
+    train_data, train_labels = train_data[:, ::50], train_labels[::50] # just for experiments
     C_values = np.logspace(-5, 0, 11)
     K = 1
     # analyze the DCF of the SVM as regularization changes
@@ -64,13 +64,14 @@ def main():
             minDCF_score = DCF_min(scores, val_labels, pi_true)
             dcfs[1].append(minDCF_score)
             # saving model parameters and scores
-            np.save(f'results/svm/svm(C={C:.4f},K={K})_{to_snake_case(title)}_scores', scores)
-            np.savez(f'models/svm/svm_(C={C:.4f},K={K})_{to_snake_case(title)}_params', 
+            np.save(f'results/svm/svm(C={C:.4e},K={K})_{to_snake_case(title)}_scores', scores)
+            np.savez(f'models/svm/svm_(C={C:.4e},K={K})_{to_snake_case(title)}_params', 
                         weights=model.params[0], bias=model.params[1])
         plot_svm_dcfs(C_values, dcfs, f'SVM (K={K}), {title}', f'plots/svm_{to_snake_case(title)}_C_DCFs_plot')
+    print("standard SVM training completed...")
     # analyze the DCF of the kernel SVM (polynomial kernel) as regularization changes
     (train_data, train_labels), (val_data, val_labels) = split_2to1(data, labels)
-    #train_data, train_labels = train_data[:, ::50], train_labels[::50] # just for experiments
+    train_data, train_labels = train_data[:, ::50], train_labels[::50] # just for experiments
     d, c = 2, 1
     K = 0
     plot_dict = {}
@@ -88,10 +89,11 @@ def main():
             dcfs[1].append(minDCF_score)
             plot_dict[f'Pol(d={d:.3f}, c={c:.3f})'] = dcfs
             # saving the model and scores
-            np.save(f'results/svm/svm(C={C:.4f},K={K})_poly(d={d},c={c})_scores', scores)
-            np.savez(f'models/svm/svm_(C={C:.4f},K={K})_poly(d={d},c={c})_params', 
+            np.save(f'results/svm/svm(C={C:.4e},K={K})_poly(d={d},c={c})_scores', scores)
+            np.savez(f'models/svm/svm_(C={C:.4e},K={K})_poly(d={d},c={c})_params', 
                         weights=model.params[0], bias=model.params[1])
     plot_kernsvm_dcfs(C_values, plot_dict, f'SVM (K={K})', 'plots/svm_poly_C_DCFs_plot')
+    print('SVM with polynomial kernel training completed...')
     # analyze the DCF of the kernel SVM (RBF kernel) as regularization changes
     C = np.logspace(-3, 2, 11)
     g_values = np.exp(-np.arange(1, 5)[::-1])
@@ -110,10 +112,12 @@ def main():
             dcfs[1].append(minDCF)
             plot_dict[f'RBF(γ={g:.3f})'] = dcfs
             # save model parameters and scores
-            np.save(f'results/svm/svm(C={C:.4f},K={K})_RBF(γ={g:.3f})_scores', scores)
-            np.savez(f'models/svm/svm(C={C:.4f},K={K})_RBF(γ={g:.3f})_params', 
+            np.save(f'results/svm/svm(C={C:.4e},K={K})_RBF(γ={g:.4e})_scores', scores)
+            np.savez(f'models/svm/svm(C={C:.4e},K={K})_RBF(γ={g:.4e})_params', 
                     weights=model.params[0], bias=model.params[1])
     plot_kernsvm_dcfs(C_values, plot_dict, f'SVM (K={K})', 'plots/svm_RBF_C_DCFs_plot')
+    print('SVM with RBF kernel training completed...')
+    print('SVMs training completed successfully!')
 
 if __name__ == '__main__':
     main()

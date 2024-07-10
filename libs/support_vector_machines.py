@@ -1,39 +1,9 @@
 import numpy as np
 from numpy.linalg import norm
-import sklearn.datasets
 from scipy.optimize import fmin_l_bfgs_b
 from tabulate import tabulate
-from model_evaluation import DCF, DCF_min, confusion_matrix
+from libs.utils import row, col
 
-K_vals = [1, 10]
-C_vals = [0.1, 1, 10]
-
-def col(v: np.ndarray):
-    return v.reshape(v.size, 1)
-
-def row(v: np.ndarray):
-    return v.reshape(1, v.size)
-
-def load_iris_bin():
-    D, l = sklearn.datasets.load_iris()['data'].T, sklearn.datasets.load_iris()['target']
-    D = D[:, l!=0] # We remove setosa from D
-    l = l[l!=0] # We remove setosa from L
-    l[l==2] = 0 # We assign label 0 to virginica (was label 2)
-    return D, l
-
-def split_2to1(D, l, seed=0):
-    ntrain = int(D.shape[1] * 2 / 3)
-    np.random.seed(seed)
-    idx = np.random.permutation(D.shape[1])
-    idxtrain = idx[:ntrain]
-    idxval = idx[ntrain:]
-
-    Dtr = D[:, idxtrain]
-    Dval = D[:, idxval]
-    ltr = l[idxtrain]
-    lval = l[idxval]
-
-    return (Dtr, ltr), (Dval, lval)
 
 def obj_primal(D: np.ndarray, z: np.ndarray, a: np.ndarray, C: int):
     w_ext = col(np.sum(a * z * D, axis=1))
@@ -44,14 +14,6 @@ def obj_primal(D: np.ndarray, z: np.ndarray, a: np.ndarray, C: int):
 def obj_dual(a: np.ndarray, D: np.ndarray, z: np.ndarray, kern=None, K=1):
     N: int = D.shape[1]
     a = col(a)
-    # # slow version
-    # H_slow = np.zeros((N, N))
-    # for i in range(N):
-    #     for j in range(N):
-    #         if kern is None:
-    #             H_slow[i, j] += z[i] * z[j] * (D[:, i].T @ D[:, j])
-    #         else:
-    #             H_slow[i, j] += z[i] * z[j] * (kern(D[:, i], D[:, j]) + K)
     # fast version
     if kern is None:
         H = row(z) * (D.T @ D) * row(z).T
@@ -81,7 +43,7 @@ class SVM():
             return np.sum(a * z * Skernel, 0).ravel()
         
 
-    def train(self, X, y, return_opt=False):
+    def train(self, X, y, return_opt=False, opt_precision: float=1e7):
         N = X.shape[1]
         x0 = np.zeros(N)
         bounds = [(0, self.C) for _ in range(N)]
@@ -89,7 +51,8 @@ class SVM():
         X_ext = np.vstack([X, np.full((1, N), self.K)])
         # encode the labels as 1, -1
         z = np.where(y > 0, 1, -1)
-        a_opt, dual_opt, _ = fmin_l_bfgs_b(obj_dual, args=(X_ext, z, self.kernel, self.K), x0=x0, bounds=bounds, factr=1.0)
+        a_opt, dual_opt, _ = fmin_l_bfgs_b(obj_dual, args=(X_ext, z, self.kernel, self.K), x0=x0, 
+                                                bounds=bounds, factr=opt_precision)
         if self.kernel is None:
             # recover the primal solution to obtain w extended
             w_ext, primal_opt = obj_primal(X_ext, z, a_opt, self.C)
@@ -134,51 +97,3 @@ def print_kernsvm_results(data):
     headers = ['K', 'C', 'Kernel', 'Dual loss', 'Error rate', 'DCF', 'minDCF']
     print(tabulate(data, headers, tablefmt="grid"))
     print()
-
-
-def main():
-    D, l = load_iris_bin()
-    (Dtr, ltr), (Dval, lval) = split_2to1(D, l)
-    # LINEAR SVM
-    svm_res = []
-    pi = 0.5
-    for K in K_vals:
-        for C in C_vals:
-            svm = SVM(C, K)
-            dual_opt, primal_opt = svm.train(Dtr, ltr, return_opt=True)
-            duality_gap = primal_opt - dual_opt
-            S = svm(Dval)
-            lpred = np.where(S > 0, 1, 0).ravel()
-            err = 1 - (np.sum(lpred == lval) / len(lval))
-            M = confusion_matrix(lpred, lval)
-            dcf, dcfmin = DCF(M, pi), DCF_min(S, lval, pi)
-            svm_res.append((K, C, primal_opt, dual_opt, duality_gap, err, dcf, dcfmin))
-    print_svm_results(svm_res)
-    # KERNEL SVM
-    kernsvm_res = []
-    C = 1
-    for d, c in [(2, 0), (2, 1)]:
-        for K in [0, 1]:
-            kernsvm = SVM(C, K, poly_kernel(d, c))
-            dual_opt = kernsvm.train(Dtr, ltr, return_opt=True)
-            S = kernsvm(Dval)
-            lpred = np.where(S > 0, 1, 0).ravel()
-            err = 1 - (np.sum(lpred == lval) / len(lval))
-            M = confusion_matrix(lpred, lval)
-            dcf, dcfmin = DCF(M, pi), DCF_min(S, lval, pi)
-            kernsvm_res.append((K, C, f'Poly(d={d},c={c})', dual_opt, err, dcf, dcfmin))
-    for g in [1, 10]:
-        for K in [0, 1]:
-            kernsvm = SVM(C, K, rbf_kernel(g))
-            dual_opt = kernsvm.train(Dtr, ltr, return_opt=True)
-            S = kernsvm(Dval)
-            lpred = np.where(S > 0, 1, 0).ravel()
-            err = 1 - (np.sum(lpred == lval) / len(lval))
-            M = confusion_matrix(lpred, lval)
-            dcf, dcfmin = DCF(M, pi), DCF_min(S, lval, pi)
-            kernsvm_res.append((K, C, f'RBF(γ={g})', dual_opt, err, dcf, dcfmin))
-    print_kernsvm_results(kernsvm_res)
-
-        
-if __name__ == '__main__':
-    main()
