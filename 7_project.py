@@ -42,7 +42,7 @@ pi_true = 0.1
 def main():
     data, labels = load_data('dataset/train.txt')
     (train_data, train_labels), (val_data, val_labels) = split_2to1(data, labels)
-    train_data, train_labels = train_data[:, ::50], train_labels[::50] # just for experiments
+    #train_data, train_labels = train_data[:, ::50], train_labels[::50] # just for experiments
     C_values = np.logspace(-5, 0, 11)
     K = 1
     # analyze the DCF of the SVM as regularization changes
@@ -71,7 +71,7 @@ def main():
     print("standard SVM training completed...")
     # analyze the DCF of the kernel SVM (polynomial kernel) as regularization changes
     (train_data, train_labels), (val_data, val_labels) = split_2to1(data, labels)
-    train_data, train_labels = train_data[:, ::50], train_labels[::50] # just for experiments
+    #train_data, train_labels = train_data[:, ::50], train_labels[::50] # just for experiments
     d, c = 2, 1
     K = 0
     plot_dict = {}
