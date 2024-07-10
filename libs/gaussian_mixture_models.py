@@ -121,6 +121,8 @@ class GMM():
             # LBG + EM
             mu = np.mean(X, 1, keepdims=True)
             C = ((X - mu) @ (X - mu).T) / X.shape[1]
+            if self.covtype == 'diag':
+                C = C * np.eye(C.shape[0])
             if covbound:
                 C = bound_cov(C, covbound)
             self.params = [(1, mu, C)]

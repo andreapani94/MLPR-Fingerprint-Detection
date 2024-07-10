@@ -36,9 +36,9 @@ def main():
         table_rows = []
         models = []
         for G in G_values:
-            model = GMM(n_components=G, covtype=covtype)
             scores = []
             for label in [0, 1]:
+                model = GMM(n_components=G, covtype=covtype)
                 model.train(train_data[:, train_labels==label], conv_threshold=1e-6, covbound=0.01)
                 scores.append(model(val_data))
                 models.append(model)
