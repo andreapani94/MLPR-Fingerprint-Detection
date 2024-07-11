@@ -101,7 +101,6 @@ def main():
             dcfs[0].append(actDCF_score)
             minDCF_score = DCF_min(scores, val_labels, pi_true)
             dcfs[1].append(minDCF_score)
-            plot_dict[f'Poly(d={d:.3f}, c={c:.3f})'] = dcfs
             table_rows.append((
                 f'C={C}, K={K}', 
                 f'd={d}, c={c}',
@@ -113,12 +112,13 @@ def main():
             np.save(f'results/svm/svm(C={C:.4e},K={K})_poly(d={d},c={c})_scores', scores)
             np.savez(f'models/svm/svm_(C={C:.4e},K={K})_poly(d={d},c={c})_params', 
                         weights=model.params[0], bias=model.params[1])
+        plot_dict[f'Poly(d={d:.3f}, c={c:.3f})'] = dcfs
     print_table(table_rows, ['C, K', 'd, c', 'actDCF', 'minDCF', 'Calibration loss'], 
                     title=f'SVM Poly kernel', filepath=filepath)
-    plot_kernsvm_dcfs(C_values, plot_dict, f'SVM (K={K})', 'plots/svm_poly_C_DCFs_plot')
+    plot_kernsvm_dcfs(C_values, plot_dict, f'SVM (K={K}) Poly kernel', 'plots/svm_poly_C_DCFs_plot')
     print('SVM with polynomial kernel training completed...')
     # analyze the DCF of the kernel SVM (RBF kernel) as regularization changes
-    C = np.logspace(-3, 2, 11)
+    C_values = np.logspace(-3, 2, 11)
     g_values = np.exp(-np.arange(1, 5)[::-1])
     K = 1
     plot_dict = {}
@@ -131,10 +131,9 @@ def main():
             scores = model(val_data)
             predictions = bayes_pred_llr(scores, pi_true)
             confmatrix = confusion_matrix(predictions, val_labels)
-            actDCF, minDCF = DCF(confmatrix, pi_true), DCF_min(scores, val_labels, pi_true)
-            dcfs[0].append(actDCF)
-            dcfs[1].append(minDCF)
-            plot_dict[f'RBF(γ={g:.3f})'] = dcfs
+            actDCF_score, minDCF_score = DCF(confmatrix, pi_true), DCF_min(scores, val_labels, pi_true)
+            dcfs[0].append(actDCF_score)
+            dcfs[1].append(minDCF_score)
             table_rows.append((
                 f'C={C}, K={K}', 
                 f'γ={g}',
@@ -146,9 +145,10 @@ def main():
             np.save(f'results/svm/svm(C={C:.4e},K={K})_RBF(γ={g:.4e})_scores', scores)
             np.savez(f'models/svm/svm(C={C:.4e},K={K})_RBF(γ={g:.4e})_params', 
                     weights=model.params[0], bias=model.params[1])
+        plot_dict[f'RBF(γ={g:.3f})'] = dcfs
     print_table(table_rows, ['C, K', 'γ', 'actDCF', 'minDCF', 'Calibration loss'], 
                     title=f'SVM RBF kernel', filepath=filepath)
-    plot_kernsvm_dcfs(C_values, plot_dict, f'SVM (K={K})', 'plots/svm_RBF_C_DCFs_plot')
+    plot_kernsvm_dcfs(C_values, plot_dict, f'SVM (K={K}) RBF kernel', 'plots/svm_RBF_C_DCFs_plot')
     print('SVM with RBF kernel training completed...')
     print('SVMs training completed successfully!')
 
