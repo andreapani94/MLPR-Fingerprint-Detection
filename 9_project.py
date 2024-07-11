@@ -1,13 +1,14 @@
 import numpy as np
-from libs.logistic_regression import LogisticRegression
+from libs.logistic_regression import LogisticRegression, quadratic_expansion, empirical_prior_logodds
 from libs.utils import load_data, split_2to1, row, col, print_table
 from libs.model_calibration import Kfold_split
-from libs.model_evaluation import bayes_pred_llr, confusion_matrix, DCF, DCF_min, plot_bayer_error
+from libs.model_evaluation import bayes_pred_llr, confusion_matrix, DCF, DCF_min
+from libs.model_evaluation import plot_bayer_error, prepare_bayes_plot_data
 
-best_scores_filenames = [
-    ('Quadratic Logistic Regression (λ=3.1623e-02)', 'results/logistic_regression/quadratic_logreg(λ=3.1623e-02)_llrs.npy'),
-    ('Diagonal GMM (G=8)', 'results/gmm/GMM(G=8)_diag_llrs.npy')
-]
+best_models_filenames = [
+    ('Quadratic Logistic Regression (λ=3.1623e-02)', 'logistic_regression/quadratic_logreg(λ=3.1623e-02)'),
+    ('Diagonal GMM (G=8)', 'gmm/GMM(G=8)_diag')
+] # to be transformed into a dict
 
 pi_true = 0.1
 K = 5
@@ -18,9 +19,10 @@ def main():
     model_scores_map = {}
     scores_all = []
     table_rows = []
+    models_cal = []
     # score calibration
-    for title, score_name in best_scores_filenames:
-        scores = row(np.load(score_name))
+    for title, model_name in best_models_filenames:
+        scores = row(np.load(f'results/{model_name}_llrs.npy'))
         scores_all.append(scores)
         model_cal = LogisticRegression(prior=pi_true)
         Kfold_scores, Kfold_labels = list(), list()
@@ -39,6 +41,7 @@ def main():
         minDCF = DCF_min(Kfold_scores, Kfold_labels, pi_true)
         table_rows.append((title, actDCF, minDCF))
         model_scores_map[title] = ((Kfold_scores, Kfold_labels), (scores, val_labels))
+        models_cal.append(model_cal)
     # score fusion
     scores_all = np.vstack(scores_all)
     Kfold_scores, Kfold_labels = list(), list()
@@ -84,6 +87,31 @@ def main():
         title='Best models',
     )
     print_table(table_rows, ['', 'actDCF', 'minDCF'])
+    
+    # Evaluation
+    eval_data, eval_labels = load_data('dataset/eval.txt')
+    #   load model parameters and hyperparameters
+    best_model_params = np.load(f'models/{best_models_filenames[0][1]}_params.npz')
+    best_model = LogisticRegression(lambda_reg=best_model_params['lambda_reg'].item())
+    best_model.params = best_model_params['weights'], best_model_params['bias'].item()
+    #   evualuate the model
+    scores = best_model(quadratic_expansion(eval_data)) - empirical_prior_logodds(eval_data, eval_labels)
+    predictions = bayes_pred_llr(scores, pi_true)
+    confmatrix = confusion_matrix(predictions, eval_labels)
+    actDCF = DCF(confmatrix, pi_true)
+    minDCF = DCF_min(scores, eval_labels, pi_true)
+    model_dcf_map, prior_logodds = prepare_bayes_plot_data(
+        { best_models_filenames[0][0]: scores }, 
+        eval_labels
+    )
+    plot_bayer_error(
+        model_dcf_map=model_dcf_map,
+        prior_logodds=prior_logodds,
+        title='Delivered model (Evaluation data)',
+        savepath='plots/delivered_model_bayes_error'
+    )
+
+    
 
 
 

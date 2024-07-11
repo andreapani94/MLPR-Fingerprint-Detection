@@ -140,6 +140,22 @@ def plot_bayer_error(prior_logodds, model_dcf_map: dict[str, dict[str, list[floa
     else:
         plt.savefig(savepath)
 
+def prepare_bayes_plot_data(model_scores_map: dict, labels: list):
+    effprior_logodds = np.linspace(-4, 4, 21)
+    effpriors = 1 / (1 + np.exp(-effprior_logodds))
+    model_dcf_map = {}
+    for model_name, scores in model_scores_map.items():
+        actDCFs, minDCFs = list(), list()
+        for prior_eff in effpriors:
+            predictions = bayes_pred_llr(scores, prior_eff)
+            M = confusion_matrix(predictions, labels)
+            dcf_score = DCF(M, prior_eff)
+            actDCFs.append(dcf_score)
+            mindcf_score = DCF_min(scores, labels, prior_eff)
+            minDCFs.append(mindcf_score)
+        model_dcf_map[model_name] = {'actDCF': actDCFs, 'minDCF': minDCFs}
+    return model_dcf_map, effprior_logodds
+
 def bayes_pred_post(P: np.ndarray, C: np.ndarray):
     Bscores = C @ P
     preds = np.argmin(Bscores, 0)

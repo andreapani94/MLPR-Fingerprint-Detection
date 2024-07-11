@@ -77,7 +77,7 @@ def main():
             # saving model parameters and scores
             np.save(f'results/svm/svm(C={C:.4e},K={K})_{to_snake_case(title)}_scores', scores)
             np.savez(f'models/svm/svm_(C={C:.4e},K={K})_{to_snake_case(title)}_params', 
-                        weights=model.params[0], bias=model.params[1])
+                        weights=model.params[0], bias=model.params[1], C=C, K=K)
         print_table(table_rows, ['C, K', 'actDCF', 'minDCF', 'Calibration loss'], 
                     title=f'SVM {title}', filepath=filepath)
         plot_svm_dcfs(C_values, dcfs, f'SVM (K={K}), {title}', f'plots/svm_{to_snake_case(title)}_C_DCFs_plot')
@@ -111,7 +111,7 @@ def main():
             # saving the model and scores
             np.save(f'results/svm/svm(C={C:.4e},K={K})_poly(d={d},c={c})_scores', scores)
             np.savez(f'models/svm/svm_(C={C:.4e},K={K})_poly(d={d},c={c})_params', 
-                        weights=model.params[0], bias=model.params[1])
+                        weights=model.params[0], bias=model.params[1], C=C, K=K, d=d, c=c)
         plot_dict[f'Poly(d={d:.3f}, c={c:.3f})'] = dcfs
     print_table(table_rows, ['C, K', 'd, c', 'actDCF', 'minDCF', 'Calibration loss'], 
                     title=f'SVM Poly kernel', filepath=filepath)
@@ -144,7 +144,7 @@ def main():
             # save model parameters and scores
             np.save(f'results/svm/svm(C={C:.4e},K={K})_RBF(γ={g:.4e})_scores', scores)
             np.savez(f'models/svm/svm(C={C:.4e},K={K})_RBF(γ={g:.4e})_params', 
-                    weights=model.params[0], bias=model.params[1])
+                    weights=model.params[0], bias=model.params[1], C=C, K=K, g=g)
         plot_dict[f'RBF(γ={g:.3f})'] = dcfs
     print_table(table_rows, ['C, K', 'γ', 'actDCF', 'minDCF', 'Calibration loss'], 
                     title=f'SVM RBF kernel', filepath=filepath)

@@ -59,7 +59,7 @@ def main():
             if i == 0:
                 np.save(f'results/logistic_regression/logreg(λ={lambda_reg:.4e})_llrs', llr_scores)
                 np.savez(f'models/logistic_regression/logreg(λ={lambda_reg:.4e})_params', 
-                            weights=model.params[0], bias=model.params[1])
+                            weights=model.params[0], bias=model.params[1], lambda_reg=lambda_reg)
         plot_logreg_dcfs(reg_values, dcfs, 'Logistic Regression', 
                             f'plots/logreg_λ_DCFs_{to_snake_case(title)}')
         print_table(table_rows, ['λ', 'actDCF', 'minDCF', 'Calibration loss'], 
@@ -90,7 +90,7 @@ def main():
         # save model parameters and scores
         np.save(f'results/logistic_regression/prior_weighted_logreg(λ={lambda_reg:.4e})_llrs', llr_scores)
         np.savez(f'models/logistic_regression/prior_weighted_logreg(λ={lambda_reg:.4e})_params', 
-                    weights=model.params[0], bias=model.params[1])
+                    weights=model.params[0], bias=model.params[1], lambda_reg=lambda_reg)
     plot_logreg_dcfs(reg_values, dcfs, f'Logistic Regression (π={pi_true})', 
                         f'plots/prior_weighted_logreg_λ_DCFs_{to_snake_case('Full dataset')}')
     print_table(table_rows, ['λ', 'actDCF', 'minDCF', 'Calibration loss'], 
@@ -120,7 +120,7 @@ def main():
         ))
         np.save(f'results/logistic_regression/quadratic_logreg(λ={lambda_reg:.4e})_llrs', llr_scores)
         np.savez(f'models/logistic_regression/quadratic_logreg(λ={lambda_reg:.4e})_params', 
-                    weights=model.params[0], bias=model.params[1])
+                    weights=model.params[0], bias=model.params[1], lambda_reg=lambda_reg)
     plot_logreg_dcfs(reg_values, dcfs, 'Quadratic Logistic Regression', 
                         f'plots/quad_logreg_λ_DCFs_{to_snake_case('Full dataset')}')
     print_table(table_rows, ['λ', 'actDCF', 'minDCF', 'Calibration loss'], 
