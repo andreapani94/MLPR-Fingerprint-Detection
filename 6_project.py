@@ -60,6 +60,7 @@ def main():
                 np.save(f'results/logistic_regression/logreg(λ={lambda_reg:.4e})_llrs', llr_scores)
                 np.savez(f'models/logistic_regression/logreg(λ={lambda_reg:.4e})_params', 
                             weights=model.params[0], bias=model.params[1], lambda_reg=lambda_reg)
+                model.save(f'models/logistic_regression/logreg(λ={lambda_reg:.4e})_params')
         plot_logreg_dcfs(reg_values, dcfs, 'Logistic Regression', 
                             f'plots/logreg_λ_DCFs_{to_snake_case(title)}')
         print_table(table_rows, ['λ', 'actDCF', 'minDCF', 'Calibration loss'], 

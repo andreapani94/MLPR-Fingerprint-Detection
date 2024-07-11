@@ -3,6 +3,24 @@ from numpy.linalg import norm
 from scipy.optimize import fmin_l_bfgs_b
 from tabulate import tabulate
 from libs.utils import row, col
+import pickle
+
+def rbf_kernel(g: float):
+
+    def rbf_kernel_parametrized(x1: np.ndarray, x2: np.ndarray):
+        x1_norm = col(np.sum(x1**2, 0))
+        x2_norm = row(np.sum(x2**2, 0))
+        return np.exp(-g * ((x1_norm + x2_norm - 2 * (x1.T @ x2))))
+    
+    return rbf_kernel_parametrized
+    
+
+def poly_kernel(d: float, c: float):
+
+    def poly_kernel_parametrized(x1: np.ndarray, x2: np.ndarray):
+        return ((x1.T @ x2) + c)**d
+    
+    return poly_kernel_parametrized
 
 
 def obj_primal(D: np.ndarray, z: np.ndarray, a: np.ndarray, C: int):
@@ -27,7 +45,7 @@ def obj_dual(a: np.ndarray, D: np.ndarray, z: np.ndarray, kern=None, K=1):
     return y, ygrad 
 
 class SVM():
-    def __init__(self, C: float, K: float, kernel=None):
+    def __init__(self, C: float=1, K: float=1, kernel=None):
         self.C = C
         self.K = K
         self.kernel = kernel
@@ -39,7 +57,7 @@ class SVM():
             return S.ravel()
         else:
             a, z = self.params
-            Skernel = self.kernel(self.Xtrain, X) + self.K
+            Skernel = self.kernel(self.X_train, X) + self.K
             return np.sum(a * z * Skernel, 0).ravel()
         
 
@@ -60,7 +78,7 @@ class SVM():
             self.params = (w.ravel(), b.ravel())
         else:
             # save the training samples for scoring
-            self.Xtrain = X
+            self.X_train = X
             self.params = (col(a_opt), col(z))
 
         if return_opt:
@@ -68,26 +86,40 @@ class SVM():
                 return abs(dual_opt), primal_opt
             else: 
                 return abs(dual_opt)
-        
-
-def rbf_kernel(g: float):
-
-    def rbf_kernel_parametrized(x1: np.ndarray, x2: np.ndarray):
-        x1_norm = col(np.sum(x1**2, 0))
-        x2_norm = row(np.sum(x2**2, 0))
-        return np.exp(-g * ((x1_norm + x2_norm - 2 * (x1.T @ x2))))
+            
+    def save(self, filepath: str):
+        if self.kernel is None:
+            np.savez(
+                filepath, 
+                weights=self.params[0], 
+                bias=self.params[1], 
+                C=self.C,
+                K=self.K,
+                kernel=False
+            )
+        else:
+            np.savez(
+                filepath, 
+                alphas=self.params[0], 
+                y_train=self.params[1], 
+                X_train=self.X_train,
+                C=self.C,
+                K=self.K,
+                kernel=True
+            )
     
-    return rbf_kernel_parametrized
+    def load(self, filepath: str):
+        model_data = np.load(filepath, allow_pickle=True)
+        kernel = model_data['kernel'].item()
+        if not kernel:
+            self.params = model_data['weights'], model_data['bias'].item()
+        else:
+            self.params = model_data['alphas'], model_data['y_train']
+            self.X_train = model_data['X_train']
+            #self.kernel = pickle.loads(kernel)
+        self.C, self.K = model_data['C'], model_data['K']
+            
     
-
-def poly_kernel(d: float, c: float):
-
-    def poly_kernel_parametrized(x1: np.ndarray, x2: np.ndarray):
-        return ((x1.T @ x2) + c)**d
-    
-    return poly_kernel_parametrized
-    
-
 def print_svm_results(data):
     headers = ['K', 'C', 'Primal loss', 'Dual loss', 'Duality gap', 'Error rate', 'DCF', 'minDCF']
     print(tabulate(data, headers, tablefmt="grid"))

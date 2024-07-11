@@ -75,4 +75,17 @@ class LogisticRegression:
         T[y, np.arange(N)] += 1
         f = ((L / 2) * norm(W)**2) - (np.sum(T * Ylog) / N)
         return f
+    
+    def save(self, filepath: str):
+        np.savez(
+            filepath, 
+            weights=self.params[0], 
+            bias=self.params[1], 
+            lambda_reg=self.lambda_reg
+        )
+
+    def load(self, filepath: str):
+        model_data = np.load(filepath)
+        self.params = model_data['weights'], model_data['bias'].item()
+        self.lambda_reg = model_data['lambda_reg'].item()
 
