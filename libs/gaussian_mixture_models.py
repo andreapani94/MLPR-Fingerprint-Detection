@@ -137,3 +137,9 @@ class GMM():
         else:
             # EM
             return self._train_EM(X, conv_threshold, covbound=covbound, return_ll=return_ll, verbose=verbose)
+        
+    def save(filepath):
+        pass
+
+    def load(filepath):
+        pass
