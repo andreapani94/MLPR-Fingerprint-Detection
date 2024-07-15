@@ -19,6 +19,7 @@ def plot_gmm_dcfs(G_values: list[int], dcfs: list[list, list], title: str, savep
     plt.savefig(savepath)
     plt.close()
 
+
 pi_true = 0.1
 filepath = 'results/gaussian_mixture_models.txt'
 TRAIN_GMM = False

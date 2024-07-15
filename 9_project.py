@@ -6,7 +6,6 @@ from libs.utils import load_data, split_2to1, row, col, print_table
 from libs.model_calibration import Kfold_split
 from libs.model_evaluation import bayes_pred_llr, confusion_matrix, DCF, DCF_min
 from libs.model_evaluation import plot_bayer_error, prepare_bayes_plot_data
-import os
 
 # a dictionary containing scores, parameters and metrics of the best models
 model_data_map = {
@@ -18,11 +17,14 @@ model_data_map = {
 
 pi_true = 0.1
 K = 5
-
+filepath = 'results/evaluation.txt'
 
 def main():
     data, labels = load_data('dataset/train.txt')
     (train_data, train_labels), (val_data, val_labels) = split_2to1(data, labels)
+    #  clear results file
+    with open(filepath, 'w') as f:
+        f.truncate()
 
     # CALIBRATION
     # load scores and model parameters of the best performing models
@@ -101,7 +103,8 @@ def main():
             actDCF_cal = DCF(cm, pi_true)
             minDCF_cal = DCF_min(cal_scores, val_labels, pi_true)
             table_rows.append((model_name, actDCF, actDCF_cal, minDCF, minDCF_cal, train_prior))
-    print_table(table_rows, ['', 'actDCF', 'actDCF (calibrated)', 'minDCF', 'minDCF (calibrated)', 'π (calibration)'])
+    print_table(table_rows, ['', 'actDCF', 'actDCF (calibrated)', 'minDCF', 'minDCF (calibrated)', 'π (calibration)'],
+                filepath=filepath, title='Best models (calibrated)')
     #   model fusion
     table_rows.clear()
     scores = model_data_map['Model Fusion']['scores']
@@ -114,7 +117,7 @@ def main():
     actDCF = DCF(cm, pi_true)
     minDCF = DCF_min(fused_scores, val_labels, pi_true)
     table_rows.append((model_name, actDCF, minDCF, train_prior))
-    print_table(table_rows, ['', 'actDCF', 'minDCF', 'π (fusion)'])
+    print_table(table_rows, ['', 'actDCF', 'minDCF', 'π (fusion)'], filepath=filepath)
     # test calibrated models (and fusion) for different applications with a bayes error plot
     model_dcf_map, prior_logodds = prepare_bayes_plot_data(
         { model_name: data['calibrated_scores'] for model_name, data in model_data_map.items() }, 
@@ -188,10 +191,15 @@ def main():
                 gmm_scores = gmm1(eval_data) - gmm0(eval_data)
                 predictions = bayes_pred_llr(gmm_scores, pi_true)
                 cm = confusion_matrix(predictions, eval_labels)
-                actDCF = DCF(cm, pi_true)
-                minDCF = DCF_min(gmm_scores, eval_labels, pi_true)
-                table_rows.append((G0, G1, title, actDCF, minDCF))
-        print_table(table_rows, ['G0', 'G1', 'actDCF', 'minDCF'], title=f'GMM {title} (evaluation)')
+                minDCF_eval = DCF_min(gmm_scores, eval_labels, pi_true)
+                gmm_scores = gmm1(val_data) - gmm0(val_data)
+                predictions = bayes_pred_llr(gmm_scores, pi_true)
+                cm = confusion_matrix(predictions, val_labels)
+                minDCF = DCF_min(gmm_scores, val_labels, pi_true)
+                table_rows.append((G0, G1, minDCF_eval, minDCF, 
+                                    f'{((minDCF_eval - minDCF) / minDCF) * 100:.2f}%'))
+        print_table(table_rows, ['G0', 'G1', 'minDCF (evaluation)', 'minDCF (validation)', 'DCF loss'], 
+                        title=f'GMM {title} (evaluation)', filepath=filepath)
 
 if __name__ == '__main__':
     main()
