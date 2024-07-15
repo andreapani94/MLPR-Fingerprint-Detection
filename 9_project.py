@@ -41,13 +41,13 @@ def main():
     model_data_map['SVM, RBF (γ=1.35334e-01)']['scores'] = row(svm_scores)
     model_data_map['SVM, RBF (γ=1.35334e-01)']['model'] = svm
     #   load best performing GMM model (actDCF=0.152, minDCF=0.131)
-    gmm_scores = np.load('results/gmm/GMM(G0=8,G1=32)_diag_llrs.npy')
+    gmm_eval_scores = np.load('results/gmm/GMM(G0=8,G1=32)_diag_llrs.npy')
     gmm0 = GMM(params_init=load_gmm('models/gmm/GMM(G=8)_diag_class0_params'))
     gmm1 = GMM(params_init=load_gmm('models/gmm/GMM(G=32)_diag_class1_params'))
-    model_data_map['GMM Diagonal (G0=8, G1=32)']['scores'] = row(gmm_scores)
+    model_data_map['GMM Diagonal (G0=8, G1=32)']['scores'] = row(gmm_eval_scores)
     model_data_map['GMM Diagonal (G0=8, G1=32)']['model'] = (gmm0, gmm1)
     #   combine scores of the best performing models for model fusion
-    fusion_scores = np.vstack([logreg_scores, svm_scores, gmm_scores])
+    fusion_scores = np.vstack([logreg_scores, svm_scores, gmm_eval_scores])
     model_data_map['Model Fusion']['scores'] = fusion_scores
 
     # using a K-fold approach, find the best performing calibration transformation for every model
@@ -133,6 +133,7 @@ def main():
 
     # EVALUATION
     eval_data, eval_labels = load_data('dataset/eval.txt')
+    table_rows.clear()
     # test the final delivered model on evaluation data
     stacked_eval_scores = np.vstack([
         logreg(quadratic_expansion(eval_data)) - empirical_prior_logodds(train_data, train_labels), 
@@ -147,7 +148,8 @@ def main():
     cm = confusion_matrix(predictions, eval_labels)
     actDCF = DCF(cm, pi_true)
     minDCF = DCF_min(fused_eval_scores, eval_labels, pi_true)
-    model_dcf_map, prior_logodds = prepare_bayes_plot_data({ 'Model Fusion': fused_eval_scores}, eval_labels)
+    table_rows.append(('Model Fusion', actDCF, minDCF))
+    model_dcf_map, prior_logodds = prepare_bayes_plot_data({'Model Fusion': fused_eval_scores}, eval_labels)
     plot_bayer_error(
         model_dcf_map=model_dcf_map,
         prior_logodds=prior_logodds,
@@ -155,18 +157,38 @@ def main():
         savepath='plots/fusion_model_evaluation_error_plot.png'
     )
     # test all the best performing models on evaluation data
+    #   Logistic Regression
     logreg_eval_scores = logreg(quadratic_expansion(eval_data)) - empirical_prior_logodds(train_data, train_labels)
     model_cal = model_data_map['Quadratic Logistic Regression (λ=3.1623e-02)']['calibration_model']
-    model_data_map['Quadratic Logistic Regression (λ=3.1623e-02)']['eval_scores'] = \
-        model_cal(row(logreg_eval_scores)) - np.log(model_cal.pi / (1 - model_cal.pi))
+    logreg_eval_scores_cal = model_cal(row(logreg_eval_scores)) - np.log(model_cal.pi / (1 - model_cal.pi))
+    model_data_map['Quadratic Logistic Regression (λ=3.1623e-02)']['eval_scores'] = logreg_eval_scores_cal
+    predictions = bayes_pred_llr(logreg_eval_scores_cal, pi_true)
+    cm = confusion_matrix(predictions, eval_labels)
+    actDCF = DCF(cm, pi_true)
+    minDCF = DCF_min(logreg_eval_scores_cal, eval_labels, pi_true)
+    table_rows.append(('Quadratic Logistic Regression (λ=3.1623e-02)', actDCF, minDCF))
+    #   SVM
     svm_eval_scores = svm(eval_data)
     model_cal = model_data_map['SVM, RBF (γ=1.35334e-01)']['calibration_model']
-    model_data_map['SVM, RBF (γ=1.35334e-01)']['eval_scores'] = \
-        model_cal(row(svm_eval_scores)) - np.log(model_cal.pi / (1 - model_cal.pi))
-    gmm_scores = gmm1(eval_data) - gmm0(eval_data)
+    svm_eval_scores_cal = model_cal(row(svm_eval_scores)) - np.log(model_cal.pi / (1 - model_cal.pi))
+    model_data_map['SVM, RBF (γ=1.35334e-01)']['eval_scores'] = svm_eval_scores_cal
+    predictions = bayes_pred_llr(svm_eval_scores_cal, pi_true)
+    cm = confusion_matrix(predictions, eval_labels)
+    actDCF = DCF(cm, pi_true)
+    minDCF = DCF_min(svm_eval_scores_cal, eval_labels, pi_true)
+    table_rows.append(('SVM, RBF (γ=1.35334e-01)', actDCF, minDCF))    
+    #   GMM
+    gmm_eval_scores = gmm1(eval_data) - gmm0(eval_data)
     model_cal = model_data_map['GMM Diagonal (G0=8, G1=32)']['calibration_model']
-    model_data_map['GMM Diagonal (G0=8, G1=32)']['eval_scores'] = \
-        model_cal(row(gmm_scores)) - np.log(model_cal.pi / (1 - model_cal.pi))
+    gmm_eval_scores_cal = model_cal(row(gmm_eval_scores)) - np.log(model_cal.pi / (1 - model_cal.pi))
+    model_data_map['GMM Diagonal (G0=8, G1=32)']['eval_scores'] = gmm_eval_scores_cal
+    predictions = bayes_pred_llr(gmm_eval_scores_cal, pi_true)
+    cm = confusion_matrix(predictions, eval_labels)
+    actDCF = DCF(cm, pi_true)
+    minDCF = DCF_min(gmm_eval_scores_cal, eval_labels, pi_true)
+    table_rows.append(('GMM Diagonal (G0=8, G1=32)', actDCF, minDCF))
+
+    print_table(table_rows, ['', 'actDCF (evaluation)', 'minDCF (evaluation)'], filepath=filepath)
     model_scores_map = {model_name: data['eval_scores'] for model_name, data in model_data_map.items()}
     model_dcf_map, prior_logodds = prepare_bayes_plot_data(model_scores_map, eval_labels)
     plot_bayer_error(
@@ -188,14 +210,14 @@ def main():
             for G1 in G_values:
                 gmm0 = GMM(params_init=load_gmm(f'models/gmm/GMM(G={G0})_{covtype}_class0_params'))
                 gmm1 = GMM(params_init=load_gmm(f'models/gmm/GMM(G={G1})_{covtype}_class1_params'))
-                gmm_scores = gmm1(eval_data) - gmm0(eval_data)
-                predictions = bayes_pred_llr(gmm_scores, pi_true)
+                gmm_eval_scores = gmm1(eval_data) - gmm0(eval_data)
+                predictions = bayes_pred_llr(gmm_eval_scores, pi_true)
                 cm = confusion_matrix(predictions, eval_labels)
-                minDCF_eval = DCF_min(gmm_scores, eval_labels, pi_true)
-                gmm_scores = gmm1(val_data) - gmm0(val_data)
-                predictions = bayes_pred_llr(gmm_scores, pi_true)
+                minDCF_eval = DCF_min(gmm_eval_scores, eval_labels, pi_true)
+                gmm_eval_scores = gmm1(val_data) - gmm0(val_data)
+                predictions = bayes_pred_llr(gmm_eval_scores, pi_true)
                 cm = confusion_matrix(predictions, val_labels)
-                minDCF = DCF_min(gmm_scores, val_labels, pi_true)
+                minDCF = DCF_min(gmm_eval_scores, val_labels, pi_true)
                 table_rows.append((G0, G1, minDCF_eval, minDCF, 
                                     f'{((minDCF_eval - minDCF) / minDCF) * 100:.2f}%'))
         print_table(table_rows, ['G0', 'G1', 'minDCF (evaluation)', 'minDCF (validation)', 'DCF loss'], 

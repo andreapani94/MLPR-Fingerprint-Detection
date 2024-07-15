@@ -1,5 +1,5 @@
 import numpy as np
-from density_estimation import logpdf_gau_nd
+from libs.density_estimation import logpdf_gau_nd
 from scipy.special import logsumexp
 from numpy.linalg import svd
 from tabulate import tabulate
