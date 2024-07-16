@@ -1,7 +1,7 @@
 import numpy as np
 import sklearn.datasets
 import scipy.special
-from dimensionality_reduction import lda
+from libs.dimensionality_reduction import lda
 
 def col(v: np.ndarray):
     return v.reshape(v.size, 1)

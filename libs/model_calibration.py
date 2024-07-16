@@ -1,10 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from itertools import cycle, combinations
+from itertools import cycle
 from tabulate import tabulate
-from libs.model_evaluation import DCF, DCF_min, plot_bayer_error, confusion_matrix
-from libs.model_evaluation import bayes_pred_llr
-from libs.logistic_regression import LogisticRegression
 
 def col(v: np.ndarray):
     return v.reshape(v.size, 1)
@@ -52,34 +49,6 @@ def plot_calibration_results(prior_logodds, model_dcf_map: dict[str: tuple], tit
     else:
         plt.savefig(f'{title}.png')
 
-def Kfold_train(data, labels, model, K: int=1, only_split=False, *args, **kwargs):
-    data_folds = np.zeros((K, len(data) // K))
-    label_folds = np.zeros((K, len(data) // K), np.int32)
-    scores = []
-    score_labels = []
-
-    # shuffle the folds
-
-
-    # extract the folds 
-    for i in range(K):
-        data_folds[i] = data[i::K]
-        label_folds[i] = labels[i::K]
-    
-    combs = list(combinations(np.arange(K), K-1))
-    fold_combs = [(list(comb), list(set(range(K)) - set(comb))[0]) for comb in combs]
-    for train_idxs, val_idx in fold_combs:
-        data_train, labels_train = np.hstack(data_folds[train_idxs]), np.hstack(label_folds[train_idxs])
-        data_val, labels_val = data_folds[val_idx], label_folds[val_idx]
-        if only_split:
-            scores.append(data_val)
-            score_labels.append(labels_val) 
-        else:
-            model.train(row(data_train), labels_train, *args, **kwargs)
-            scores.append(model(row(data_val)))
-            score_labels.append(labels_val)
-    
-    return np.hstack(scores), np.hstack(score_labels, dtype=np.int32).ravel()
 
 def Kfold_split(data: np.ndarray, labels: np.ndarray, K: int=1, shuffle: bool=False)-> list[tuple[tuple]]:
     train_val_pairs = []

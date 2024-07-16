@@ -5,7 +5,6 @@ from libs.dimensionality_reduction import PCA
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sn
-from tabulate import tabulate
 
 filepath = 'results/gaussian_models.txt'
 
@@ -30,12 +29,16 @@ def main():
         np.save(f'results/gaussian_models/{to_snake_case(title)}_llr', llr_scores)
     print_table(table_rows, headers=['', 'Error rate'], filepath=filepath)
     # correlation analysis
-    for label in [0, 1]:
+    sn.set_palette("deep")  # Set seaborn default palette
+    palette = sn.color_palette()
+    for label, cmap in [(0, sn.light_palette(palette[0], as_cmap=True)), 
+                        (1, sn.light_palette(palette[1], as_cmap=True))]:
         C = mvg.params[label][1]
         print_matrix(C, f'{label_names[label]} covariance', filepath=filepath)
         C_corr = corr(C)
         print_matrix(C_corr, f'{label_names[label]} correlation', filepath=filepath)
-        sn.heatmap(C_corr, linewidths=2, cmap='Reds')
+        sn.heatmap(C_corr, linewidths=2, cmap=cmap)
+        plt.title(f'Correlation Heatmap - {label_names[label]}')
         plt.savefig(f'plots/heatmap_corr_{to_snake_case(label_names[label])}.png')
         plt.close()
     # MVG models on a fraction of features (1 to 4), (1-2), (3-4)

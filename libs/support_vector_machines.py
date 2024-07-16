@@ -3,7 +3,6 @@ from numpy.linalg import norm
 from scipy.optimize import fmin_l_bfgs_b
 from tabulate import tabulate
 from libs.utils import row, col
-import pickle
 
 def rbf_kernel(g: float):
 
